@@ -192,6 +192,13 @@ declare module 'astro:content' {
   collection: "docs";
   data: InferEntrySchema<"docs">
 } & { render(): Render[".md"] };
+"contato.mdx": {
+	id: "contato.mdx";
+  slug: "contato";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".mdx"] };
 "guia/Atualização BOE Mubs/atualizar-placas.md": {
 	id: "guia/Atualização BOE Mubs/atualizar-placas.md";
   slug: "guia/atualização-boe-mubs/atualizar-placas";
@@ -272,5 +279,5 @@ declare module 'astro:content' {
 
 	type AnyEntryMap = ContentEntryMap & DataEntryMap;
 
-	export type ContentConfig = typeof import("../src/content/config.js");
+	export type ContentConfig = typeof import("./../src/content/config.js");
 }

@@ -1,0 +1,157 @@
+---
+// src/components/FormularioOperacoes.astro
+---
+
+<div class="not-content max-w-2xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow-xl my-8">
+  <h2 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Relatório de Campo - Operações</h2>
+  
+  <form id="le-form" class="space-y-4">
+    <!-- URL do Web App do Google Apps Script -->
+    <!-- Substitua abaixo ou use uma variável de ambiente pública -->
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4 dark:bg-yellow-900 dark:text-yellow-100">
+      <p class="text-sm">
+        <strong>Configuração Necessária:</strong> Substitua a URL abaixo no código (`FormularioOperacoes.astro`) pela URL do seu Web App gerada no Google Apps Script.
+      </p>
+    </div>
+    <input type="hidden" id="script-url" value="URL_DO_APPS_SCRIPT_AQUI" />
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome do Técnico</label>
+      <input type="text" name="nome" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm p-2 border" placeholder="Seu nome completo" />
+    </div>
+
+     <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email Corporativo</label>
+      <input type="email" name="email" required pattern=".+@eletromidia\.com\.br" title="Apenas emails @eletromidia.com.br" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm p-2 border" placeholder="seu.nome@eletromidia.com.br" />
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Localização / ID da Face</label>
+      <input type="text" name="localizacao" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm p-2 border" placeholder="Ex: Av. Paulista, 1000 - Face A" />
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tipo de Problema</label>
+      <select name="tipo" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm p-2 border">
+        <option value="duvida">Dúvida Técnica</option>
+        <option value="hardware">Erro de Hardware</option>
+        <option value="software">Erro de Software</option>
+        <option value="outros">Outros</option>
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Descrição Detalhada</label>
+      <textarea name="descricao" rows="4" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm p-2 border" placeholder="Descreva o problema ou dúvida..."></textarea>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Foto da Manutenção (Opcional)</label>
+      <input type="file" name="imagem" accept="image/png, image/jpeg" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:text-gray-300" />
+    </div>
+
+    <div id="status-message" class="hidden p-4 rounded-md text-sm font-medium"></div>
+
+    <button type="submit" id="submit-btn" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors cursor-pointer">
+      Enviar Report
+    </button>
+  </form>
+</div>
+
+<script>
+  const form = document.getElementById('le-form');
+  const statusDiv = document.getElementById('status-message');
+  const submitBtn = document.getElementById('submit-btn');
+
+  const getBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result.split(',')[1]); 
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    // UI Loading State
+    submitBtn.textContent = 'Enviando...';
+    submitBtn.disabled = true;
+    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    statusDiv.classList.add('hidden');
+
+    const formData = new FormData(form);
+    const data = {
+      nome: formData.get('nome'),
+      email: formData.get('email'),
+      localizacao: formData.get('localizacao'),
+      tipo: formData.get('tipo'),
+      descricao: formData.get('descricao')
+    };
+
+    const fileInput = form.querySelector('input[type="file"]');
+    if (fileInput.files.length > 0) {
+      const file = fileInput.files[0];
+      try {
+        const base64 = await getBase64(file);
+        data.imagem = {
+          nome: file.name,
+          tipo: file.type,
+          base64: base64
+        };
+      } catch (err) {
+        console.error("Erro ao converter imagem", err);
+        statusDiv.textContent = "Erro ao processar imagem.";
+        statusDiv.className = "hidden p-4 rounded-md bg-red-100 text-red-700";
+        statusDiv.classList.remove('hidden');
+        submitBtn.textContent = 'Enviar Report';
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        return;
+      }
+    }
+
+    const scriptUrl = document.getElementById('script-url').value;
+    
+    // Check if URL is still placeholder
+    if (scriptUrl === "URL_DO_APPS_SCRIPT_AQUI" || scriptUrl === "") {
+        statusDiv.textContent = "ERRO: A URL do script não foi configurada no componente.";
+        statusDiv.className = "flex p-4 rounded-md bg-red-100 text-red-700";
+        statusDiv.classList.remove('hidden');
+        submitBtn.textContent = 'Enviar Report';
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        return;
+    }
+
+    try {
+      const response = await fetch(scriptUrl, {
+        method: 'POST',
+        // 'text/plain' content type avoids sending an OPTIONS preflight request
+        // which Google Apps Script sometimes rejects.
+        body: JSON.stringify(data)
+      });
+      
+      const result = await response.json();
+      
+      if (result.result === 'success') {
+         statusDiv.textContent = "✅  Relatório e arquivos enviados com sucesso! Obrigado.";
+         statusDiv.className = "flex p-4 rounded-md bg-green-100 text-green-700";
+         form.reset();
+      } else {
+         throw new Error(result.error || 'Erro desconhecido');
+      }
+
+    } catch (error) {
+      console.error(error);
+      statusDiv.textContent = "Ocorreu um erro ao enviar: " + error.message;
+      statusDiv.className = "flex p-4 rounded-md bg-red-100 text-red-700";
+    } finally {
+      statusDiv.classList.remove('hidden');
+      submitBtn.textContent = 'Enviar Report';
+      submitBtn.disabled = false;
+      submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+  });
+</script>
